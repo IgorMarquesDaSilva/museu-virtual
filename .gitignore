@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.env
+museu-back-end/data/favorites.json
+
