@@ -5,6 +5,9 @@ function dataFrom(response) {
 }
 
 export function errorMessage(error) {
+  if (typeof error.response?.data === 'string' && error.response.data.includes('Proxy error')) {
+    return 'O servidor Node.js não está ligado. Reinicie o projeto com npm run serve na pasta museu-front-end.';
+  }
   return error.response?.data?.error || error.message || 'Não foi possível conectar à API.';
 }
 

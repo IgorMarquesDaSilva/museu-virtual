@@ -4,25 +4,22 @@ Projeto educacional com **HTML, CSS, JavaScript e Vue.js no front-end** e **Node
 
 ## Como iniciar (igual às aulas com Vue CLI)
 
-Requer Node.js 20 ou superior. Abra dois terminais na pasta `museu-virtual`.
-
-**Terminal 1 — back-end**
+Requer Node.js 20 ou superior. Instale as dependências uma vez nas duas pastas:
 
 ```powershell
 cd .\museu-back-end
 npm install
-npm start
+cd ..\museu-front-end
+npm install
 ```
 
-**Terminal 2 — front-end**
+Depois, na pasta `museu-front-end`, inicie tudo com o comando da aula:
 
 ```powershell
-cd .\museu-front-end
-npm install
 npm run serve
 ```
 
-Abra **http://localhost:8080**. O Vue CLI é responsável pelo comando `serve`. Ele encaminha as chamadas `/api` para o Node em `http://localhost:3000`. Se a API não estiver ligada, a página abre, mas a busca e os favoritos não funcionarão.
+Abra **http://localhost:8080**. O comando `serve` inicia o Node na porta 3000, caso ele ainda não esteja ativo, e o Vue CLI na porta 8080. O Vue encaminha as chamadas `/api` para o Node. Para encerrar os dois servidores iniciados por esse comando, pressione `Ctrl+C`.
 
 ## Estrutura e ligação com as aulas
 
