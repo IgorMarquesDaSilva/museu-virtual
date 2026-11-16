@@ -1,6 +1,6 @@
 <template>
   <div class="site-shell">
-    <CabecalhoSite :favorite-count="favoriteCount" />
+    <CabecalhoSite :favorite-count="favoriteCount" :user="user" @logout="logout" />
     <main id="inicio">
       <section class="hero">
         <div class="hero-content">
@@ -17,7 +17,7 @@
         </div>
       </section>
       <router-view v-slot="{ Component }">
-        <component :is="Component" @favorites-changed="refreshFavorites" />
+        <component :is="Component" @favorites-changed="refreshFavorites" @auth-changed="handleAuthChanged" />
       </router-view>
     </main>
     <RodapeSite />
@@ -28,6 +28,7 @@
 import CabecalhoSite from './components/CabecalhoSite.vue';
 import RodapeSite from './components/RodapeSite.vue';
 import { museumController } from './controllers/museumController';
+import { authController, authState } from './controllers/authController';
 
 export default {
   name: 'App',
@@ -35,16 +36,34 @@ export default {
   data() {
     return { favoriteCount: 0 };
   },
-  mounted() {
+  computed: {
+    user() {
+      return authState.user;
+    }
+  },
+  async mounted() {
+    await authController.carregarPerfil();
     this.refreshFavorites();
   },
   methods: {
     async refreshFavorites() {
+      if (!authState.user) {
+        this.favoriteCount = 0;
+        return;
+      }
       try {
         this.favoriteCount = (await museumController.listarFavoritos()).length;
       } catch {
         this.favoriteCount = 0;
       }
+    },
+    handleAuthChanged() {
+      this.refreshFavorites();
+    },
+    async logout() {
+      await authController.sair();
+      this.favoriteCount = 0;
+      this.$router.push('/');
     }
   }
 };

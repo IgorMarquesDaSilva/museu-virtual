@@ -23,9 +23,9 @@ export function createMuseumController(artworkModel, favoritesModel) {
         sendError(response, error.message);
       }
     },
-    async listFavorites(_request, response) {
+    async listFavorites(request, response) {
       try {
-        sendData(response, await favoritesModel.list());
+        sendData(response, await favoritesModel.list(request.user.id));
       } catch {
         sendError(response, 'Não foi possível carregar os favoritos.');
       }
@@ -33,7 +33,7 @@ export function createMuseumController(artworkModel, favoritesModel) {
     async addFavorite(request, response) {
       if (!validArtwork(request.body)) return sendError(response, 'Obra inválida.', 400);
       try {
-        sendData(response, await favoritesModel.add(request.body), 201);
+        sendData(response, await favoritesModel.add(request.user.id, request.body), 201);
       } catch {
         sendError(response, 'Não foi possível salvar o favorito.');
       }
@@ -41,7 +41,7 @@ export function createMuseumController(artworkModel, favoritesModel) {
     async removeFavorite(request, response) {
       if (!/^(met|cma)-\d+$/.test(request.params.id)) return sendError(response, 'ID inválido.', 400);
       try {
-        sendData(response, await favoritesModel.remove(request.params.id));
+        sendData(response, await favoritesModel.remove(request.user.id, request.params.id));
       } catch {
         sendError(response, 'Não foi possível remover o favorito.');
       }

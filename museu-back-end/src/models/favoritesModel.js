@@ -1,41 +1,27 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
-
-export function createFavoritesModel(filePath) {
-  let queue = Promise.resolve();
-
-  async function read() {
-    try {
-      return JSON.parse(await readFile(filePath, 'utf8'));
-    } catch (error) {
-      if (error.code === 'ENOENT') return [];
-      throw error;
-    }
-  }
-
-  async function write(items) {
-    await mkdir(dirname(filePath), { recursive: true });
-    await writeFile(filePath, JSON.stringify(items, null, 2), 'utf8');
-  }
-
-  function update(operation) {
-    const next = queue.then(async () => {
-      const items = await read();
-      const updated = operation(items);
-      await write(updated);
-      return updated;
-    });
-    queue = next.catch(() => {});
-    return next;
-  }
+export function createFavoritesModel(database) {
+  const list = database.prepare(`
+    SELECT artwork_id AS id, source, title, artist, artwork_date AS date, image, url
+    FROM favorites WHERE user_id = ? ORDER BY created_at DESC
+  `);
+  const add = database.prepare(`
+    INSERT OR IGNORE INTO favorites
+      (user_id, artwork_id, source, title, artist, artwork_date, image, url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const remove = database.prepare('DELETE FROM favorites WHERE user_id = ? AND artwork_id = ?');
 
   return {
-    list: read,
-    add(artwork) {
-      return update(items => items.some(item => item.id === artwork.id) ? items : [...items, artwork]);
+    list(userId) {
+      return list.all(userId);
     },
-    remove(id) {
-      return update(items => items.filter(item => item.id !== id));
+    add(userId, artwork) {
+      add.run(userId, artwork.id, artwork.source, artwork.title, artwork.artist,
+        artwork.date, artwork.image, artwork.url);
+      return list.all(userId);
+    },
+    remove(userId, id) {
+      remove.run(userId, id);
+      return list.all(userId);
     }
   };
 }

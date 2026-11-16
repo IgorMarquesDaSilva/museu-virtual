@@ -19,7 +19,7 @@ Depois, na pasta `museu-front-end`, inicie tudo com o comando da aula:
 npm run serve
 ```
 
-Abra **http://localhost:8080**. O comando `serve` inicia o Node na porta 3000, caso ele ainda não esteja ativo, e o Vue CLI na porta 8080. O Vue encaminha as chamadas `/api` para o Node. Para encerrar os dois servidores iniciados por esse comando, pressione `Ctrl+C`.
+Abra **http://localhost:9090**. O comando `serve` inicia o Node na porta 3000, caso ele ainda não esteja ativo, e o Vue CLI na porta 9090. O Vue encaminha as chamadas `/api` para o Node. Para encerrar os dois servidores iniciados por esse comando, pressione `Ctrl+C`.
 
 ## Estrutura e ligação com as aulas
 
@@ -46,7 +46,7 @@ museu-virtual/
 
 O front-end usa `v-model` no campo de busca, `v-if` para carregamento/erros e `v-for` para exibir as obras. Os componentes usam `data()`, `computed`, `mounted()` e `methods`, como nos exemplos das aulas. O Vue Router alterna as páginas sem recarregar o navegador. O Axios centraliza as requisições HTTP.
 
-O back-end segue MVC: **models** obtêm e salvam dados, **controllers** recebem as requisições, **routes** definem os endereços e **views** retornam JSON. Não há MongoDB neste projeto: os favoritos são salvos em `museu-back-end/data/favorites.json` para manter a instalação simples.
+O back-end segue MVC: **models** obtêm e salvam dados, **controllers** recebem as requisições, **routes** definem os endereços e **views** retornam JSON. Contas, sessões e favoritos de cada usuário são salvos no banco SQLite `museu-back-end/data/museu.db`, criado automaticamente na primeira execução.
 
 ## Fluxo de uma busca
 
@@ -64,9 +64,13 @@ Algumas palavras comuns em português são traduzidas para a pesquisa. Os catál
 | --- | --- | --- |
 | GET | `/api/health` | Verifica se a API está ligada |
 | GET | `/api/artworks?q=flores` | Busca nos dois museus |
-| GET | `/api/favorites` | Lista os favoritos |
-| POST | `/api/favorites` | Salva uma obra |
-| DELETE | `/api/favorites/:id` | Remove uma obra |
+| POST | `/api/auth/register` | Cria uma conta e inicia a sessão |
+| POST | `/api/auth/login` | Inicia a sessão |
+| POST | `/api/auth/logout` | Encerra a sessão |
+| GET/PUT | `/api/auth/profile` | Consulta ou atualiza o perfil |
+| GET | `/api/favorites` | Lista os favoritos do usuário autenticado |
+| POST | `/api/favorites` | Salva uma obra para o usuário autenticado |
+| DELETE | `/api/favorites/:id` | Remove uma obra do usuário autenticado |
 
 ## Verificações
 

@@ -20,6 +20,8 @@
   bottom: 0;
 }
 
+.nav-logout { padding: 0; }
+
 .empty-link {
   display: inline-block;
   text-decoration: none;

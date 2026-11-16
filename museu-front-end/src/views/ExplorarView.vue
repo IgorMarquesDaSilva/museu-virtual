@@ -19,6 +19,7 @@
 import BuscaObras from '../components/BuscaObras.vue';
 import ListaObras from '../components/ListaObras.vue';
 import { museumController, errorMessage } from '../controllers/museumController';
+import { authState } from '../controllers/authController';
 
 export default {
   name: 'ExplorarView',
@@ -31,7 +32,7 @@ export default {
     };
   },
   mounted() {
-    this.loadFavorites();
+    if (authState.user) this.loadFavorites();
     this.search('flores');
   },
   methods: {
@@ -62,6 +63,10 @@ export default {
       }
     },
     async toggleFavorite(artwork) {
+      if (!authState.user) {
+        this.$router.push({ name: 'login', query: { redirect: this.$route.fullPath } });
+        return;
+      }
       if (this.favoriteBusy) return;
       this.favoriteBusy = artwork.id;
       this.error = '';

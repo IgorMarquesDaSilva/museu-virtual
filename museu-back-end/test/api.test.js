@@ -1,9 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { createApp, createFavoritesModel } from '../src/app.js';
+import { createApp, createDatabase } from '../src/app.js';
 import { createArtworkModel } from '../src/models/artworkModel.js';
 
 const artwork = {
@@ -36,28 +33,48 @@ test('integra as duas fontes e usa o cache na busca', async () => {
   assert.equal(calls.length, 3);
 });
 
-test('busca e favoritos funcionam pelas rotas HTTP', async t => {
-  const temp = await mkdtemp(join(tmpdir(), 'museu-test-'));
+test('autenticação, perfil e favoritos funcionam pelas rotas HTTP', async t => {
+  const database = createDatabase(':memory:');
   const app = createApp({
     artworkModel: { search: async () => ({ artworks: [artwork], warnings: [] }) },
-    favoritesModel: createFavoritesModel(join(temp, 'favorites.json'))
+    database
   });
   const server = app.listen(0);
   await new Promise(resolve => server.once('listening', resolve));
-  t.after(async () => { server.close(); await rm(temp, { recursive: true, force: true }); });
+  t.after(() => { server.close(); database.close(); });
   const base = `http://127.0.0.1:${server.address().port}/api`;
-  const request = (path, options) => fetch(`${base}${path}`, options);
+  const request = (path, options = {}) => fetch(`${base}${path}`, options);
 
   const invalid = await request('/artworks?q=a');
   assert.equal(invalid.status, 400);
   const search = await (await request('/artworks?q=arte')).json();
   assert.equal(search.data.artworks[0].id, 'met-123');
 
-  const add = await request('/favorites', {
+  assert.equal((await request('/favorites')).status, 401);
+
+  const register = await request('/auth/register', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: 'Pessoa Teste', email: 'teste@example.com', password: 'senha-segura' })
+  });
+  assert.equal(register.status, 201);
+  const cookie = register.headers.get('set-cookie').split(';')[0];
+  assert.equal((await register.json()).data.email, 'teste@example.com');
+
+  const authenticated = (path, options = {}) => request(path, {
+    ...options, headers: { Cookie: cookie, ...(options.headers || {}) }
+  });
+  const profile = await (await authenticated('/auth/profile')).json();
+  assert.equal(profile.data.name, 'Pessoa Teste');
+
+  const add = await authenticated('/favorites', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(artwork)
   });
   assert.equal(add.status, 201);
-  assert.equal((await (await request('/favorites')).json()).data.length, 1);
-  await request('/favorites/met-123', { method: 'DELETE' });
-  assert.deepEqual((await (await request('/favorites')).json()).data, []);
+  assert.equal((await (await authenticated('/favorites')).json()).data.length, 1);
+  await authenticated('/favorites/met-123', { method: 'DELETE' });
+  assert.deepEqual((await (await authenticated('/favorites')).json()).data, []);
+
+  const logout = await authenticated('/auth/logout', { method: 'POST' });
+  assert.equal(logout.status, 200);
+  assert.equal((await authenticated('/auth/profile')).status, 401);
 });

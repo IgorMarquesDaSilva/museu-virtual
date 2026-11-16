@@ -1,0 +1,57 @@
+.account-section {
+  padding: 78px max(5.5vw, 28px) 100px;
+  display: flex;
+  justify-content: center;
+}
+
+.account-card {
+  width: min(520px, 100%);
+  background: #fff;
+  border: 1px solid #dedbd0;
+  padding: 46px;
+  box-shadow: 0 8px 35px rgba(25, 41, 33, .05);
+}
+
+.account-card h2 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 42px;
+  font-weight: 400;
+  letter-spacing: -1px;
+  margin: 13px 0;
+}
+
+.account-copy { color: #6f756f; font-size: 13px; line-height: 1.6; margin: 0 0 28px; }
+.account-form { display: grid; gap: 18px; }
+.account-form label {
+  display: grid;
+  gap: 8px;
+  color: #536158;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.account-form input {
+  height: 48px;
+  border: 1px solid #d8d8cc;
+  background: #fbfaf6;
+  padding: 0 14px;
+  color: #1a2923;
+  outline: 0;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.account-form input:focus { border-color: #9a7952; }
+.account-form small { color: #8b9187; font-size: 10px; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.account-form button { height: 48px; border: 0; background: #193b2e; color: #fff; font-size: 12px; font-weight: 700; margin-top: 4px; }
+.account-form button:disabled { opacity: .65; }
+.account-switch { font-size: 12px; color: #6f756f; text-align: center; margin: 24px 0 0; }
+.account-switch a { color: #193b2e; font-weight: 700; text-underline-offset: 3px; }
+.account-since { border-top: 1px solid #e2e0d6; color: #8b9187; font-size: 11px; margin: 28px 0 0; padding-top: 18px; }
+
+@media (max-width: 480px) {
+  .account-card { padding: 30px 22px; }
+  .account-card h2 { font-size: 35px; }
+}
