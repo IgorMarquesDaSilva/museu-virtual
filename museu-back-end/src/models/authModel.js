@@ -27,62 +27,78 @@ async function verifyPassword(password, stored) {
 }
 
 export function createAuthModel(database) {
-  const findByEmail = database.prepare('SELECT * FROM users WHERE email = ?');
-  const findById = database.prepare('SELECT * FROM users WHERE id = ?');
-  const insertUser = database.prepare('INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)');
-  const updateUser = database.prepare(`
-    UPDATE users SET name = ?, email = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
-  `);
-  const insertSession = database.prepare(`
-    INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (?, ?, ?)
-  `);
-  const findSession = database.prepare(`
+  async function findByEmail(email) {
+    const [rows] = await database.execute('SELECT * FROM users WHERE email = ? LIMIT 1', [email]);
+    return rows[0];
+  }
+
+  async function findById(id) {
+    const [rows] = await database.execute('SELECT * FROM users WHERE id = ? LIMIT 1', [id]);
+    return rows[0];
+  }
+
+  const findSessionSql = `
     SELECT users.* FROM sessions
     JOIN users ON users.id = sessions.user_id
-    WHERE sessions.token_hash = ? AND sessions.expires_at > unixepoch()
-  `);
-  const deleteSession = database.prepare('DELETE FROM sessions WHERE token_hash = ?');
-  const deleteExpired = database.prepare('DELETE FROM sessions WHERE expires_at <= unixepoch()');
+    WHERE sessions.token_hash = ? AND sessions.expires_at > UNIX_TIMESTAMP()
+    LIMIT 1
+  `;
 
-  function createSession(userId) {
+  async function createSession(userId) {
     const token = randomBytes(32).toString('hex');
     const expiresAt = Math.floor(Date.now() / 1000) + SESSION_DAYS * 86400;
-    deleteExpired.run();
-    insertSession.run(userId, tokenHash(token), expiresAt);
+    await database.execute('DELETE FROM sessions WHERE expires_at <= UNIX_TIMESTAMP()');
+    await database.execute('INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (?, ?, ?)',
+      [userId, tokenHash(token), expiresAt]);
     return { token, maxAge: SESSION_DAYS * 86400 };
   }
 
   return {
     async register({ name, email, password }) {
-      if (findByEmail.get(email)) {
+      if (await findByEmail(email)) {
         const error = new Error('Este e-mail já está cadastrado.');
         error.code = 'EMAIL_EXISTS';
         throw error;
       }
-      const result = insertUser.run(name, email, await hashPassword(password));
-      const user = publicUser(findById.get(result.lastInsertRowid));
-      return { user, session: createSession(user.id) };
+      try {
+        const [result] = await database.execute(
+          'INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)',
+          [name, email, await hashPassword(password)]
+        );
+        const user = publicUser(await findById(result.insertId));
+        return { user, session: await createSession(user.id) };
+      } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') error.code = 'EMAIL_EXISTS';
+        throw error;
+      }
     },
     async login({ email, password }) {
-      const user = findByEmail.get(email);
+      const user = await findByEmail(email);
       if (!user || !(await verifyPassword(password, user.password_hash))) return null;
-      return { user: publicUser(user), session: createSession(user.id) };
+      return { user: publicUser(user), session: await createSession(user.id) };
     },
-    authenticate(token) {
-      return token ? publicUser(findSession.get(tokenHash(token))) : null;
+    async authenticate(token) {
+      if (!token) return null;
+      const [rows] = await database.execute(findSessionSql, [tokenHash(token)]);
+      return publicUser(rows[0]);
     },
-    logout(token) {
-      if (token) deleteSession.run(tokenHash(token));
+    async logout(token) {
+      if (token) await database.execute('DELETE FROM sessions WHERE token_hash = ?', [tokenHash(token)]);
     },
-    update(userId, { name, email }) {
-      const existing = findByEmail.get(email);
+    async update(userId, { name, email }) {
+      const existing = await findByEmail(email);
       if (existing && existing.id !== userId) {
         const error = new Error('Este e-mail já está cadastrado.');
         error.code = 'EMAIL_EXISTS';
         throw error;
       }
-      updateUser.run(name, email, userId);
-      return publicUser(findById.get(userId));
+      try {
+        await database.execute('UPDATE users SET name = ?, email = ? WHERE id = ?', [name, email, userId]);
+        return publicUser(await findById(userId));
+      } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') error.code = 'EMAIL_EXISTS';
+        throw error;
+      }
     }
   };
 }

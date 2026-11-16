@@ -10,9 +10,11 @@ import { createDatabase } from './models/databaseModel.js';
 
 export function createApp({ artworkModel, favoritesModel, authModel, database } = {}) {
   const app = express();
-  const appDatabase = database || createDatabase(':memory:');
-  const appAuthModel = authModel || createAuthModel(appDatabase);
-  const appFavoritesModel = favoritesModel || createFavoritesModel(appDatabase);
+  if (!database && (!authModel || !favoritesModel)) {
+    throw new Error('Informe a conexão MySQL ou os models da aplicação.');
+  }
+  const appAuthModel = authModel || createAuthModel(database);
+  const appFavoritesModel = favoritesModel || createFavoritesModel(database);
   app.disable('x-powered-by');
   app.use(express.json({ limit: '30kb' }));
   const authController = createAuthController(appAuthModel);

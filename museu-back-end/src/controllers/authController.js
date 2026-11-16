@@ -33,11 +33,15 @@ function setSessionCookie(response, session) {
 
 export function createAuthController(authModel) {
   return {
-    requireAuth(request, response, next) {
-      const user = authModel.authenticate(sessionToken(request));
-      if (!user) return sendError(response, 'Faça login para continuar.', 401);
-      request.user = user;
-      next();
+    async requireAuth(request, response, next) {
+      try {
+        const user = await authModel.authenticate(sessionToken(request));
+        if (!user) return sendError(response, 'Faça login para continuar.', 401);
+        request.user = user;
+        next();
+      } catch {
+        sendError(response, 'Não foi possível validar a sessão.');
+      }
     },
     async register(request, response) {
       const name = String(request.body?.name || '').trim();
@@ -64,21 +68,25 @@ export function createAuthController(authModel) {
       setSessionCookie(response, result.session);
       sendData(response, result.user);
     },
-    logout(request, response) {
-      authModel.logout(sessionToken(request));
-      response.clearCookie(COOKIE_NAME, { path: '/' });
-      sendData(response, { loggedOut: true });
+    async logout(request, response) {
+      try {
+        await authModel.logout(sessionToken(request));
+        response.clearCookie(COOKIE_NAME, { path: '/' });
+        sendData(response, { loggedOut: true });
+      } catch {
+        sendError(response, 'Não foi possível encerrar a sessão.');
+      }
     },
     profile(request, response) {
       sendData(response, request.user);
     },
-    updateProfile(request, response) {
+    async updateProfile(request, response) {
       const name = String(request.body?.name || '').trim();
       const email = normalizedEmail(request.body?.email);
       if (!validName(name)) return sendError(response, 'Informe um nome de 2 a 80 caracteres.', 400);
       if (!email) return sendError(response, 'Informe um e-mail válido.', 400);
       try {
-        sendData(response, authModel.update(request.user.id, { name, email }));
+        sendData(response, await authModel.update(request.user.id, { name, email }));
       } catch (error) {
         sendError(response, error.code === 'EMAIL_EXISTS' ? error.message : 'Não foi possível atualizar o perfil.',
           error.code === 'EMAIL_EXISTS' ? 409 : 500);

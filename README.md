@@ -13,6 +13,8 @@ cd ..\museu-front-end
 npm install
 ```
 
+Mantenha o MySQL do EasyPHP ligado. Na configuração padrão local, o projeto conecta em `127.0.0.1:3306` com usuário `root` sem senha e cria automaticamente o banco `museu_virtual`. Para usar outra configuração, defina `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` e `DB_NAME` antes de iniciar.
+
 Depois, na pasta `museu-front-end`, inicie tudo com o comando da aula:
 
 ```powershell
@@ -46,7 +48,7 @@ museu-virtual/
 
 O front-end usa `v-model` no campo de busca, `v-if` para carregamento/erros e `v-for` para exibir as obras. Os componentes usam `data()`, `computed`, `mounted()` e `methods`, como nos exemplos das aulas. O Vue Router alterna as páginas sem recarregar o navegador. O Axios centraliza as requisições HTTP.
 
-O back-end segue MVC: **models** obtêm e salvam dados, **controllers** recebem as requisições, **routes** definem os endereços e **views** retornam JSON. Contas, sessões e favoritos de cada usuário são salvos no banco SQLite `museu-back-end/data/museu.db`, criado automaticamente na primeira execução.
+O back-end segue MVC: **models** obtêm e salvam dados, **controllers** recebem as requisições, **routes** definem os endereços e **views** retornam JSON. Contas, sessões e favoritos de cada usuário são salvos no banco MySQL `museu_virtual`, visível no phpMyAdmin e criado automaticamente na primeira execução.
 
 ## Fluxo de uma busca
 

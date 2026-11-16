@@ -1,12 +1,51 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createApp, createDatabase } from '../src/app.js';
+import { createApp } from '../src/app.js';
 import { createArtworkModel } from '../src/models/artworkModel.js';
 
 const artwork = {
   id: 'met-123', source: 'met', title: 'Obra teste', artist: 'Artista',
   date: '1900', image: 'https://example.com/image.jpg', url: 'https://example.com/art'
 };
+
+function createTestModels() {
+  let user = null;
+  let activeToken = '';
+  let favorites = [];
+  return {
+    authModel: {
+      async register(data) {
+        user = { id: 1, name: data.name, email: data.email, createdAt: '2026-11-16 12:00:00' };
+        activeToken = 'test-token';
+        return { user, session: { token: activeToken, maxAge: 604800 } };
+      },
+      async login() {
+        return { user, session: { token: activeToken, maxAge: 604800 } };
+      },
+      async authenticate(token) {
+        return token === activeToken ? user : null;
+      },
+      async logout() {
+        activeToken = '';
+      },
+      async update(_id, data) {
+        user = { ...user, ...data };
+        return user;
+      }
+    },
+    favoritesModel: {
+      async list() { return favorites; },
+      async add(_userId, item) {
+        if (!favorites.some(favorite => favorite.id === item.id)) favorites = [...favorites, item];
+        return favorites;
+      },
+      async remove(_userId, id) {
+        favorites = favorites.filter(item => item.id !== id);
+        return favorites;
+      }
+    }
+  };
+}
 
 test('integra as duas fontes e usa o cache na busca', async () => {
   const calls = [];
@@ -34,14 +73,14 @@ test('integra as duas fontes e usa o cache na busca', async () => {
 });
 
 test('autenticação, perfil e favoritos funcionam pelas rotas HTTP', async t => {
-  const database = createDatabase(':memory:');
+  const models = createTestModels();
   const app = createApp({
     artworkModel: { search: async () => ({ artworks: [artwork], warnings: [] }) },
-    database
+    ...models
   });
   const server = app.listen(0);
   await new Promise(resolve => server.once('listening', resolve));
-  t.after(() => { server.close(); database.close(); });
+  t.after(() => server.close());
   const base = `http://127.0.0.1:${server.address().port}/api`;
   const request = (path, options = {}) => fetch(`${base}${path}`, options);
 

@@ -2,8 +2,5 @@ node_modules/
 dist/
 .npm-cache/
 .env
-museu-back-end/data/favorites.json
-museu-back-end/data/*.db
-museu-back-end/data/*.db-shm
-museu-back-end/data/*.db-wal
+museu-back-end/data/
 

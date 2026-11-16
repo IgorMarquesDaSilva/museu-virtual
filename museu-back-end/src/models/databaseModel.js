@@ -1,43 +1,61 @@
-import Database from 'better-sqlite3';
-import { mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import mysql from 'mysql2/promise';
 
-export function createDatabase(filePath) {
-  if (filePath !== ':memory:') mkdirSync(dirname(filePath), { recursive: true });
-  const database = new Database(filePath);
-  database.pragma('foreign_keys = ON');
-  database.pragma('journal_mode = WAL');
-  database.exec(`
+export async function createDatabase(options = {}) {
+  const databaseName = options.database || process.env.DB_NAME || 'museu_virtual';
+  if (!/^[a-zA-Z0-9_]+$/.test(databaseName)) throw new Error('Nome de banco MySQL inválido.');
+  const connectionOptions = {
+    host: options.host || process.env.DB_HOST || '127.0.0.1',
+    port: Number(options.port || process.env.DB_PORT || 3306),
+    user: options.user || process.env.DB_USER || 'root',
+    password: options.password ?? process.env.DB_PASSWORD ?? ''
+  };
+  const setup = await mysql.createConnection(connectionOptions);
+  await setup.query(`CREATE DATABASE IF NOT EXISTS \`${databaseName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+  await setup.end();
+
+  const database = mysql.createPool({
+    ...connectionOptions,
+    database: databaseName,
+    charset: 'utf8mb4',
+    multipleStatements: true,
+    waitForConnections: true,
+    connectionLimit: 10
+  });
+  await database.query(`
     CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL UNIQUE COLLATE NOCASE,
-      password_hash TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      name VARCHAR(80) NOT NULL,
+      email VARCHAR(160) NOT NULL,
+      password_hash VARCHAR(200) NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY users_email_unique (email)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     CREATE TABLE IF NOT EXISTS sessions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      token_hash TEXT NOT NULL UNIQUE,
-      expires_at INTEGER NOT NULL,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    );
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id BIGINT UNSIGNED NOT NULL,
+      token_hash CHAR(64) NOT NULL,
+      expires_at BIGINT UNSIGNED NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY sessions_token_unique (token_hash),
+      KEY sessions_user_idx (user_id),
+      CONSTRAINT sessions_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     CREATE TABLE IF NOT EXISTS favorites (
-      user_id INTEGER NOT NULL,
-      artwork_id TEXT NOT NULL,
-      source TEXT NOT NULL,
-      title TEXT NOT NULL,
-      artist TEXT NOT NULL,
-      artwork_date TEXT NOT NULL,
+      user_id BIGINT UNSIGNED NOT NULL,
+      artwork_id VARCHAR(64) NOT NULL,
+      source VARCHAR(10) NOT NULL,
+      title VARCHAR(500) NOT NULL,
+      artist VARCHAR(500) NOT NULL,
+      artwork_date VARCHAR(200) NOT NULL,
       image TEXT NOT NULL,
       url TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (user_id, artwork_id),
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    );
-    CREATE INDEX IF NOT EXISTS sessions_token_idx ON sessions(token_hash);
+      CONSTRAINT favorites_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
   return database;
 }
