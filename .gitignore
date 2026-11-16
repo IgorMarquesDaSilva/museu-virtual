@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.npm-cache/
 .env
 museu-back-end/data/favorites.json
 

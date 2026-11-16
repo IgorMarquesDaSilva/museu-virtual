@@ -1,5 +1,7 @@
 import { createApp } from 'vue';
-import MuseumView from './views/MuseumView.vue';
-import './styles.css';
+import App from './App.vue';
+import router from './router';
+import './assets/css/styles.css';
+import './assets/css/navigation.css';
 
-createApp(MuseumView).mount('#app');
+createApp(App).use(router).mount('#app');

@@ -2,20 +2,23 @@
   "name": "museu-front-end",
   "private": true,
   "version": "1.0.0",
-  "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build"
   },
   "dependencies": {
-    "vue": "3.5.45"
+    "axios": "^1.9.0",
+    "core-js": "^3.8.3",
+    "vue": "^3.5.13",
+    "vue-router": "^4.0.3"
   },
   "devDependencies": {
-    "vite": "8.3.8",
-    "@vitejs/plugin-vue": "6.0.11"
+    "@vue/cli-plugin-babel": "~5.0.8",
+    "@vue/cli-plugin-router": "~5.0.8",
+    "@vue/cli-service": "~5.0.8",
+    "@vue/compiler-sfc": "^3.5.13"
   },
   "engines": {
-    "node": ">=22.12"
+    "node": ">=20"
   }
 }

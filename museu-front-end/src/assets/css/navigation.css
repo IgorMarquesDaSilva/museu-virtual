@@ -1,0 +1,39 @@
+.main-nav a {
+  color: #68736b;
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  position: relative;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.main-nav a.router-link-exact-active { color: #142e25; }
+.main-nav a.router-link-exact-active::after {
+  content: '';
+  position: absolute;
+  height: 2px;
+  background: #b68852;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.empty-link {
+  display: inline-block;
+  text-decoration: none;
+  border: 0;
+  background: #193b2e;
+  color: white;
+  padding: 12px 19px;
+  font-size: 13px;
+}
+
+@media (max-width: 760px) {
+  .main-nav a { font-size: 11px; }
+}
+
+@media (max-width: 480px) {
+  .main-nav a { font-size: 10px; }
+}
